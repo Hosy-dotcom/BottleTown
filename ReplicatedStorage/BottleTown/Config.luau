@@ -1,6 +1,10 @@
 return {
  UpgradePrice = 200,
- ActiveLimit = 24,
+ ActiveLimit = 16,
+ ResidentBottleLimit = 2,
+ BottleZoneTargets = {Town=8, Park=3, Meadow=3},
+ BottleRefillInterval = 4,
+ ResidentScale = 1.75,
  Types = {
   {name="Water bottle", cents=25, color=Color3.fromRGB(85,185,243), label=Color3.fromRGB(240,251,255), size=1},
   {name="Reusable glass", cents=15, color=Color3.fromRGB(99,193,111), label=Color3.fromRGB(247,219,148), size=1.13},

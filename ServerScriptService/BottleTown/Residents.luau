@@ -1,15 +1,20 @@
-local RunService = game:GetService("RunService")
+local Config = require(game.ReplicatedStorage.BottleTown.Config)
 local Residents = {}
 local rng = Random.new()
+local scale = Config.ResidentScale
+-- The original standing pose put the sole .14 studs above its route origin.
+local standingFootOffset = .14
 local routes = {
  {name="Mara", color=Color3.fromRGB(204,108,99), points={{-29,29},{-18,16},{-14,7,true},{-24,-10},{-31,7}}},
- {name="Emil", color=Color3.fromRGB(84,130,153), points={{47,-5},{55,1},{53,7,true},{56,22},{63,29},{71,9}}},
+ {name="Emil", color=Color3.fromRGB(84,130,153), points={
+  {49,-3},{57,1},{58,8},{53,7,true},{56,22},{63,29},{54,22},{54,15},{62,11},{59,2},
+ }},
  {name="Ada", color=Color3.fromRGB(153,104,165), points={{-29,19},{-42,20,true},{-58,18},{-53,8},{-37,10}}},
 }
 local function makePart(model,name,size,color)
  local part = Instance.new("Part")
  part.Name = name
- part.Size = size
+ part.Size = size * scale
  part.Color = color
  part.Anchored = true
  part.CanCollide = false
@@ -18,6 +23,10 @@ local function makePart(model,name,size,color)
  part.Material = Enum.Material.SmoothPlastic
  part.Parent = model
  return part
+end
+
+local function offset(x,y,z)
+ return CFrame.new(x*scale,y*scale,z*scale)
 end
 
 function Residents.start(town, discard)
@@ -39,14 +48,15 @@ function Residents.start(town, discard)
   local leftArm = makePart(model,"Left sleeve",V(.32,.88,.42),route.color)
   local rightArm = makePart(model,"Right sleeve",V(.32,.88,.42),route.color)
   local function pose(facing,phase,walking)
+   facing *= offset(0,-standingFootOffset,0)
    local swing = walking and math.sin(phase)*.38 or 0
-   torso.CFrame = facing*CFrame.new(0,1.65,0)
-   head.CFrame = facing*CFrame.new(0,2.64,0)
-   hair.CFrame = facing*CFrame.new(0,2.94,.03)
-   leftLeg.CFrame = facing*CFrame.new(-.29,.98,0)*CFrame.Angles(swing,0,0)*CFrame.new(0,-.42,0)
-   rightLeg.CFrame = facing*CFrame.new(.29,.98,0)*CFrame.Angles(-swing,0,0)*CFrame.new(0,-.42,0)
-   leftArm.CFrame = facing*CFrame.new(-.75,2.1,0)*CFrame.Angles(-swing,0,0)*CFrame.new(0,-.41,0)
-   rightArm.CFrame = facing*CFrame.new(.75,2.1,0)*CFrame.Angles(swing,0,0)*CFrame.new(0,-.41,0)
+   torso.CFrame = facing*offset(0,1.65,0)
+   head.CFrame = facing*offset(0,2.64,0)
+   hair.CFrame = facing*offset(0,2.94,.03)
+   leftLeg.CFrame = facing*offset(-.29,.98,0)*CFrame.Angles(swing,0,0)*offset(0,-.42,0)
+   rightLeg.CFrame = facing*offset(.29,.98,0)*CFrame.Angles(-swing,0,0)*offset(0,-.42,0)
+   leftArm.CFrame = facing*offset(-.75,2.1,0)*CFrame.Angles(-swing,0,0)*offset(0,-.41,0)
+   rightArm.CFrame = facing*offset(.75,2.1,0)*CFrame.Angles(swing,0,0)*offset(0,-.41,0)
   end
   local points = route.points
   local function position(point) return V(point[1],.14,point[2]) end

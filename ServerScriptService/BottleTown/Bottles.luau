@@ -1,12 +1,18 @@
 local Config = require(game.ReplicatedStorage.BottleTown.Config)
 local Bottles = {}
 local rng = Random.new()
-local spots = {
- {-9,23},{9,25},{-8,4},{8,3},{-10,8},{18,8},{-7,31},{-31,12},{27,19},{23,35},
- {-31,-14},{12,-14},{28,-13},{-28,-40},{16,-41},{40,-41},{63,-14},{-59,-14},
- {54,2},{65,16},{57,25},{48,32},{75,14},{66,31},{46,-1},{54,11},{74,23},
- {-43,17},{-54,10},{-63,16},{-75,10},{-70,24},{-59,30},{-81,23},{-68,37},
- {-39,8},{42,27},{74,-4},{-77,32},{-56,21},{-2,36},{18,-7},{-19,-5},
+local zones = {
+ {name="Town", spots={
+  {-9,23},{9,25},{-8,4},{8,3},{-10,8},{18,8},{-7,31},{-31,12},{27,19},{23,35},
+  {-31,-14},{12,-14},{28,-13},{-28,-40},{16,-41},{40,-41},{63,-14},{-59,-14},
+  {-2,36},{18,-7},{-19,-5},
+ }},
+ {name="Park", spots={
+  {54,2},{65,16},{57,25},{48,32},{75,14},{66,31},{46,-1},{54,11},{74,23},{42,27},{74,-4},
+ }},
+ {name="Meadow", spots={
+  {-43,17},{-54,10},{-63,16},{-75,10},{-70,24},{-59,30},{-81,23},{-68,37},{-39,8},{-77,32},{-56,21},
+ }},
 }
 
 local function cylinder(model, name, root, offset, width, length, color, material)
@@ -29,13 +35,29 @@ function Bottles.start(town, bind)
  folder.Name = "Collectible bottles"
  local active = {}
  local count = 0
+ local countsBySource = {Resident=0}
+ local ambientTarget = 0
+ for _,zone in ipairs(zones) do
+  countsBySource[zone.name] = 0
+  ambientTarget += Config.BottleZoneTargets[zone.name]
+ end
  local mythicalSpawned = false
  local nextId = 0
 
+ local function forget(model)
+  local entry = active[model]
+  if not entry then return end
+  active[model] = nil
+  count -= 1
+  countsBySource[entry.source] -= 1
+ end
+ folder.ChildRemoved:Connect(forget)
+
  local function spawn(x,z,source,forcedType)
   if count >= Config.ActiveLimit then return end
-  for _,position in pairs(active) do
-   if (position-Vector2.new(x,z)).Magnitude < 4 then return end
+  local position = Vector2.new(x,z)
+  for _,entry in pairs(active) do
+   if (entry.position-position).Magnitude < 4 then return end
   end
   local mythical = not forcedType and not mythicalSpawned and rng:NextInteger(1,1800) == 1
   local kind = mythical and Config.Mythical or (forcedType or Config.Types[rng:NextInteger(1,#Config.Types)])
@@ -65,39 +87,60 @@ function Bottles.start(town, bind)
    light.Range = 13
    light.Brightness = 2
   end
-  active[model] = Vector2.new(x,z)
-  count += 1
   bind(body,kind,function()
-   active[model] = nil
-   count -= 1
+   forget(model)
    model:Destroy()
   end)
+  active[model] = {position=position,source=source}
+  count += 1
+  countsBySource[source] += 1
   model.Parent = folder
+  return true
  end
 
- local order = table.clone(spots)
- for index = #order,2,-1 do
-  local swap = rng:NextInteger(1,index)
-  order[index],order[swap] = order[swap],order[index]
- end
- for index = 1,20 do
-  local spot = order[index]
-  spawn(spot[1],spot[2],"Town",Config.Types[(index-1)%#Config.Types+1])
- end
- task.spawn(function()
-  while true do
-   task.wait(4)
-   if count < Config.ActiveLimit-2 then
-    for _ = 1,5 do
-     local oldCount = count
-     local spot = spots[rng:NextInteger(1,#spots)]
-     spawn(spot[1],spot[2],"Town")
-     if count > oldCount then break end
+ local nextZone = 1
+ local function refill(forcedType)
+  if count >= Config.ActiveLimit then return end
+  for offset = 0,#zones-1 do
+   local index = (nextZone+offset-1)%#zones+1
+   local zone = zones[index]
+   if countsBySource[zone.name] < Config.BottleZoneTargets[zone.name] then
+    -- Try each authored spot once so a crowded zone cannot stall a refill.
+    local start = rng:NextInteger(1,#zone.spots)
+    for step = 0,#zone.spots-1 do
+     local spot = zone.spots[(start+step-1)%#zone.spots+1]
+     if spawn(spot[1],spot[2],zone.name,forcedType) then
+      nextZone = index%#zones+1
+      return true
+     end
     end
    end
   end
+ end
+
+ local startingTypes = {}
+ for index = 1,math.min(ambientTarget,Config.ActiveLimit) do
+  startingTypes[index] = Config.Types[(index-1)%#Config.Types+1]
+ end
+ for index = #startingTypes,2,-1 do
+  local swap = rng:NextInteger(1,index)
+  startingTypes[index],startingTypes[swap] = startingTypes[swap],startingTypes[index]
+ end
+ for _,kind in ipairs(startingTypes) do
+  if not refill(kind) then break end
+ end
+
+ task.spawn(function()
+  while true do
+   task.wait(Config.BottleRefillInterval)
+   refill()
+  end
  end)
- return function(x,z) spawn(x,z,"Resident") end
+ return function(x,z)
+  if countsBySource.Resident < Config.ResidentBottleLimit then
+   spawn(x,z,"Resident")
+  end
+ end
 end
 
 return Bottles

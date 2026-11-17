@@ -1,0 +1,10 @@
+---
+description: BottleTown Git commit message format
+alwaysApply: true
+---
+
+Use `type(scope):Summary` for BottleTown commits. Use lowercase type and scope,
+start the summary with a capital letter, and omit the space after the colon.
+Use the exact message when the user supplies one.
+
+Example: `feat(core):Initial BottleTown development setup`

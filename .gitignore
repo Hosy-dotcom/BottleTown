@@ -1,0 +1,13 @@
+# Roblox Studio lock files and recovery copies
+*.rbxl.lock
+*.rbxlx.lock
+*.rbxl.bak
+*.rbxlx.bak
+*.rbxlx.tmp
+AutoSaves/
+
+# Rojo-generated source map
+sourcemap.json
+
+# macOS Finder metadata
+.DS_Store

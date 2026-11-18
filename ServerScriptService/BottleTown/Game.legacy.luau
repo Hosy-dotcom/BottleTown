@@ -4,6 +4,7 @@ local Feedback = game.ReplicatedStorage.BottleTown.Feedback
 local Inventory = require(script.Parent.Inventory)
 local Bottles = require(script.Parent.Bottles)
 local Residents = require(script.Parent.Residents)
+local Pickup = require(script.Parent.Pickup)
 local town = workspace.BottleTown
 
 local function addPrompt(part, action, description, distance)
@@ -25,20 +26,9 @@ local function canInteract(player,part,prompt)
   and part:IsDescendantOf(town) and (root.Position-part.Position).Magnitude <= prompt.MaxActivationDistance+1
 end
 
-local discard = Bottles.start(town,function(part,bottle,remove)
+local discard = Bottles.start(town,function(part,bottle,remove,folder)
  local prompt = addPrompt(part,"Pick up",bottle.name .. (bottle.cents and " · "..Config.Money(bottle.cents) or " · Mythical"),6)
- local claimed = false
- prompt.Triggered:Connect(function(player)
-  if claimed or not canInteract(player,part,prompt) then return end
-  claimed = true
-  local ok,message = Inventory.collect(player,bottle)
-  if ok then
-   remove()
-  else
-   claimed = false
-  end
-  Feedback:FireClient(player,message,ok)
- end)
+ return Pickup.register(prompt,part,bottle,remove,folder)
 end)
 
 local station = town["Pfand station"]

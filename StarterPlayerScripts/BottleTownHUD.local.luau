@@ -80,7 +80,11 @@ for _,attribute in ipairs({"BottleCount","BagCapacity","CashCents","LindenStars"
  player:GetAttributeChangedSignal(attribute):Connect(refresh)
 end
 refresh()
-show("Explore the square, park and meadow. Press E or tap the bottle prompt to collect, then return bottles at Korn Markt’s green Pfand machine.",cream,14)
-shared:WaitForChild("Feedback").OnClientEvent:Connect(function(content,success)
+show("Explore the square, park and meadow. Hold E, Button X, or the bottle prompt to collect, then return bottles at Korn Markt’s green Pfand machine.",cream,14)
+shared:WaitForChild("Feedback").OnClientEvent:Connect(function(content,success,payload)
+ if success and payload and payload.kind == "pickup" then
+  fill.BackgroundColor3 = cream
+  TweenService:Create(fill,TweenInfo.new(.25),{BackgroundColor3 = (player:GetAttribute("BottleCount") or 0) >= (player:GetAttribute("BagCapacity") or 5) and peach or mint}):Play()
+ end
  if content ~= "" then show(content,success and mint or peach,4) end
 end)

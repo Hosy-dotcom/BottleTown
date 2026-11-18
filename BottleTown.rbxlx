@@ -55361,8 +55361,12 @@ for _,attribute in ipairs({"BottleCount","BagCapacity","CashCents","LindenStars"
  player:GetAttributeChangedSignal(attribute):Connect(refresh)
 end
 refresh()
-show("Explore the square, park and meadow. Press E or tap the bottle prompt to collect, then return bottles at Korn Markt’s green Pfand machine.",cream,14)
-shared:WaitForChild("Feedback").OnClientEvent:Connect(function(content,success)
+show("Explore the square, park and meadow. Hold E, Button X, or the bottle prompt to collect, then return bottles at Korn Markt’s green Pfand machine.",cream,14)
+shared:WaitForChild("Feedback").OnClientEvent:Connect(function(content,success,payload)
+ if success and payload and payload.kind == "pickup" then
+  fill.BackgroundColor3 = cream
+  TweenService:Create(fill,TweenInfo.new(.25),{BackgroundColor3 = (player:GetAttribute("BottleCount") or 0) >= (player:GetAttribute("BagCapacity") or 5) and peach or mint}):Play()
+ end
  if content ~= "" then show(content,success and mint or peach,4) end
 end)]]></ProtectedString>
 					<bool name="Disabled">false</bool>
@@ -55378,6 +55382,153 @@ end)]]></ProtectedString>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					<UniqueId name="UniqueId">237b5518f116a2300b0e2c2300000de9</UniqueId>
+				</Properties>
+			</Item>
+			<Item class="LocalScript" referent="RBX3719ba362f43496e8e64b53891b3ec84">
+				<Properties>
+					<ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+local Prompts = game:GetService("ProximityPromptService")
+local RunService = game:GetService("RunService")
+local SoundService = game:GetService("SoundService")
+local Shared = game.ReplicatedStorage:WaitForChild("BottleTown")
+local Settings = require(Shared:WaitForChild("Config")).Pickup
+local player = Players.LocalPlayer
+local active
+local nextId = 0
+local requests = Shared:WaitForChild("PickupRequest")
+local cachedCharacter
+local track
+local reach
+local resetPose
+local restorePose
+local releasedAt
+local sound = Instance.new("Sound")
+sound.Volume = Settings.Volume
+sound.Parent = SoundService
+
+local function clearPose()
+ if not reach then return end
+ restorePose()
+ reach:Disconnect()
+ resetPose:Disconnect()
+ reach,resetPose,restorePose,releasedAt = nil,nil,nil,nil
+end
+
+local function endHold(immediate)
+ active = nil
+ if track then track:Stop(.12) end
+ if immediate then
+  clearPose()
+ elseif reach and not releasedAt then
+  releasedAt = os.clock()
+ end
+end
+
+local function preview(character,rig)
+ local elbow = character:FindFirstChild(rig == "R15" and "RightElbow" or "Right Shoulder",true)
+ local waist = rig == "R15" and character:FindFirstChild("Waist",true)
+ local joints = {{joint=elbow,angle=rig == "R15" and -.55 or .65},{joint=waist,angle=.22}}
+ local start = os.clock()
+ local function restore()
+  for _,entry in ipairs(joints) do
+   if entry.base and entry.joint.Parent then entry.joint.Transform = entry.base end
+   entry.base = nil
+  end
+ end
+ resetPose = RunService.PreAnimation:Connect(restore)
+ reach = RunService.PreSimulation:Connect(function()
+  local now = os.clock()
+  local weight = math.min(1,((releasedAt or now)-start)/.25)
+  if releasedAt then
+   weight *= math.max(0,1-(now-releasedAt)/.12)
+   if weight <= 0 then clearPose() return end
+  end
+  for _,entry in ipairs(joints) do
+   local joint = entry.joint
+   if joint and (joint:IsA("Motor6D") or joint:IsA("AnimationConstraint")) and joint.Parent then
+    entry.base = joint.Transform
+    joint.Transform *= CFrame.Angles(entry.angle*weight,0,0)
+   end
+  end
+ end)
+ return restore
+end
+
+Prompts.PromptButtonHoldBegan:Connect(function(prompt)
+ if not prompt:GetAttribute("BottlePickup") then return end
+ if active then requests:FireServer("cancel",active.id) end
+ endHold(true)
+ nextId += 1
+ active = {prompt=prompt,id=nextId}
+ requests:FireServer("begin",nextId,prompt)
+ local character = player.Character
+ local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+ if not humanoid then return end
+ if cachedCharacter ~= character then
+  if track then track:Destroy() track = nil end
+  cachedCharacter = character
+  local animator = humanoid:FindFirstChildOfClass("Animator")
+  local id = Settings.AnimationIds[humanoid.RigType.Name]
+  if animator and id then
+   local clip = Instance.new("Animation")
+   clip.AnimationId = id
+   local ok,loaded = pcall(animator.LoadAnimation,animator,clip)
+   clip:Destroy()
+   if ok then track = loaded track.Priority = Enum.AnimationPriority.Action end
+  end
+ end
+ if track then track:Play(.12) else restorePose = preview(character,humanoid.RigType.Name) end
+end)
+
+local function cancelActive()
+ if not active then return end
+ requests:FireServer("cancel",active.id)
+ endHold()
+end
+
+Prompts.PromptButtonHoldEnded:Connect(function(prompt)
+ local attempt = active
+ if not attempt or attempt.prompt ~= prompt then return end
+ -- Native completion can emit HoldEnded and Triggered in the same update.
+ task.defer(function()
+  if active == attempt then cancelActive() end
+ end)
+end)
+Prompts.PromptHidden:Connect(function(prompt)
+ if active and active.prompt == prompt then cancelActive() end
+end)
+Prompts.PromptTriggered:Connect(function(prompt)
+ if not active or active.prompt ~= prompt then return end
+ requests:FireServer("finish",active.id)
+ endHold()
+end)
+player.CharacterRemoving:Connect(function()
+ cancelActive()
+ endHold(true)
+ if track then track:Destroy() track = nil end
+ cachedCharacter = nil
+end)
+Shared:WaitForChild("Feedback").OnClientEvent:Connect(function(_,_,payload)
+ if not payload or payload.kind ~= "pickup" then return end
+ if active and active.id == payload.attemptId then endHold() end
+ if payload.state == "success" then
+  local id = Settings.SoundIds[payload.sound] or Settings.SoundIds.General
+  if id then sound.SoundId = id sound:Play() end
+ end
+end)]]></ProtectedString>
+					<bool name="Disabled">false</bool>
+					<Content name="LinkedSource"><null></null></Content>
+					<token name="RunContext">0</token>
+					<string name="ScriptGuid">{ac6d1042-fc33-4792-b3ed-262f1163babe}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">BottlePickup</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">1f7b14113f874d8a8e3491b1509bc7c5</UniqueId>
 				</Properties>
 			</Item>
 		</Item>
@@ -56014,6 +56165,12 @@ end)]]></ProtectedString>
 				<Properties>
 					<Content name="LinkedSource"><null></null></Content>
 					<ProtectedString name="Source"><![CDATA[return {
+ Pickup = {
+  BaseDuration = .9,
+  AnimationIds = {},
+  SoundIds = {General="rbxasset://sounds/electronicpingshort.wav"},
+  Volume = .18,
+ },
  UpgradePrice = 200,
  ActiveLimit = 16,
  ResidentBottleLimit = 2,
@@ -56021,10 +56178,10 @@ end)]]></ProtectedString>
  BottleRefillInterval = 4,
  ResidentScale = 1.75,
  Types = {
-  {name="Water bottle", cents=25, color=Color3.fromRGB(85,185,243), label=Color3.fromRGB(240,251,255), size=1},
-  {name="Reusable glass", cents=15, color=Color3.fromRGB(99,193,111), label=Color3.fromRGB(247,219,148), size=1.13},
-  {name="Amber glass", cents=8, color=Color3.fromRGB(189,105,46), label=Color3.fromRGB(251,210,114), size=.83},
-  {name="Soda bottle", cents=25, color=Color3.fromRGB(237,104,117), label=Color3.fromRGB(255,232,223), size=1.24},
+  {name="Water bottle", pickupSound="Plastic", cents=25, color=Color3.fromRGB(85,185,243), label=Color3.fromRGB(240,251,255), size=1},
+  {name="Reusable glass", pickupSound="Glass", cents=15, color=Color3.fromRGB(99,193,111), label=Color3.fromRGB(247,219,148), size=1.13},
+  {name="Amber glass", pickupSound="Glass", cents=8, color=Color3.fromRGB(189,105,46), label=Color3.fromRGB(251,210,114), size=.83},
+  {name="Soda bottle", pickupSound="Plastic", cents=25, color=Color3.fromRGB(237,104,117), label=Color3.fromRGB(255,232,223), size=1.24},
  },
  Mythical = {name="Linden Star", color=Color3.fromRGB(255,203,77), label=Color3.fromRGB(255,247,193), size=1.35},
  Money = function(cents) return string.format("€%d.%02d", math.floor(cents/100), cents%100) end,
@@ -56102,16 +56259,23 @@ Players.PlayerAdded:Connect(join)
 Players.PlayerRemoving:Connect(function(player) profiles[player] = nil end)
 for _,player in ipairs(Players:GetPlayers()) do join(player) end
 
-function Inventory.collect(player, bottle)
+function Inventory.canCollect(player, bottle)
  local profile = profiles[player]
  if not profile then return false, "" end
+ if bottle.cents and #profile.bottles >= profile.capacity then
+  return false, "Backpack full! Return your bottles at Korn Markt."
+ end
+ return true
+end
+
+function Inventory.collect(player, bottle)
+ local ok,message = Inventory.canCollect(player,bottle)
+ if not ok then return false,message end
+ local profile = profiles[player]
  if not bottle.cents then
   profile.stars += 1
   update(player, profile)
   return true, "You found the Linden Star! Added to your collection."
- end
- if #profile.bottles >= profile.capacity then
-  return false, "Backpack full! Return your bottles at Korn Markt."
  end
  table.insert(profile.bottles, bottle)
  update(player, profile)
@@ -56153,6 +56317,153 @@ return Inventory]]></ProtectedString>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					<UniqueId name="UniqueId">237b5518f116a2300b0e2c2300000de0</UniqueId>
+				</Properties>
+			</Item>
+			<Item class="ModuleScript" referent="RBX26aa9405dbf143c3bfafc868d50a4cfc">
+				<Properties>
+					<Content name="LinkedSource"><null></null></Content>
+					<ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Shared = game.ReplicatedStorage.BottleTown
+local Config = require(Shared.Config)
+local Inventory = require(script.Parent.Inventory)
+
+local Pickup = {}
+local registered = {}
+local pending = {}
+local lastId = {}
+local lastRejection = {}
+local monitor
+local complete
+local requests = Instance.new("RemoteEvent")
+requests.Name = "PickupRequest"
+
+local function durationForPlayer(_player)
+ return Config.Pickup.BaseDuration
+end
+
+local function valid(player,entry,character)
+ local root = character and character:FindFirstChild("HumanoidRootPart")
+ local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+ return player.Character == character and root and humanoid and humanoid.Health > 0
+  and registered[entry.prompt] == entry and entry.prompt.Enabled
+  and entry.prompt.Parent == entry.part and entry.part.Parent == entry.model
+  and entry.model.Parent == entry.folder and entry.folder:IsDescendantOf(workspace)
+  and (root.Position-entry.part.Position).Magnitude <= entry.prompt.MaxActivationDistance+1
+end
+
+local function clear(player,state,message)
+ local attempt = pending[player]
+ if not attempt then return end
+ pending[player] = nil
+ if not next(pending) and monitor then
+  monitor:Disconnect()
+  monitor = nil
+ end
+ if state then
+  local entry = attempt.entry
+  Shared.Feedback:FireClient(player,message or "",state=="success",{
+   kind="pickup",state=state,attemptId=attempt.id,
+   sound=state=="success" and (entry.bottle.pickupSound or "General") or nil,
+  })
+ end
+end
+
+local function scan()
+ local now = os.clock()
+ for player,attempt in pairs(pending) do
+  if now > attempt.deadline or not valid(player,attempt.entry,attempt.character) then
+   clear(player,"cancel")
+  elseif attempt.completing and now >= attempt.ready then
+   complete(player,attempt)
+  end
+ end
+end
+
+complete = function(player,attempt)
+ if pending[player] ~= attempt then return end
+ local entry = attempt.entry
+ local now = os.clock()
+ if now < attempt.ready or now > attempt.deadline or entry.claimed
+  or not valid(player,entry,attempt.character) then
+  clear(player,"cancel")
+  return
+ end
+ entry.claimed = true
+ local ok,message = Inventory.collect(player,entry.bottle)
+ if not ok then
+  entry.claimed = false
+  clear(player,"cancel",message)
+  return
+ end
+ clear(player,"success",message)
+ entry.remove()
+end
+
+requests.OnServerEvent:Connect(function(player,action,id,prompt)
+ if type(id) ~= "number" or id < 1 or id > 2^31 or id%1 ~= 0 then return end
+ local attempt = pending[player]
+ if action == "cancel" or action == "finish" then
+  if not attempt or attempt.id ~= id then return end
+  if action == "cancel" then
+   clear(player,"cancel")
+  else
+   attempt.completing = true
+  end
+  return
+ end
+ if action ~= "begin" or typeof(prompt) ~= "Instance" or id <= (lastId[player] or 0) then return end
+ local entry = registered[prompt]
+ if not entry then return end
+ lastId[player] = id
+ clear(player)
+ local character = player.Character
+ if not valid(player,entry,character) then return end
+ local now = os.clock()
+ local ok,message = Inventory.canCollect(player,entry.bottle)
+ if not ok then
+  local show = now-(lastRejection[player] or -math.huge) >= .25
+  if show then lastRejection[player] = now end
+  Shared.Feedback:FireClient(player,show and message or "",false,{kind="pickup",state="cancel",attemptId=id})
+  return
+ end
+ local duration = durationForPlayer(player)
+ pending[player] = {id=id,entry=entry,character=character,ready=now+duration,deadline=now+duration+2}
+ if not monitor then monitor = RunService.Heartbeat:Connect(scan) end
+end)
+requests.Parent = Shared
+
+Players.PlayerRemoving:Connect(function(player)
+ clear(player)
+ lastId[player] = nil
+ lastRejection[player] = nil
+end)
+
+function Pickup.register(prompt,part,bottle,remove,folder)
+ prompt.HoldDuration = Config.Pickup.BaseDuration
+ prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
+ prompt:SetAttribute("BottlePickup",true)
+ local entry = {prompt=prompt,part=part,model=part.Parent,bottle=bottle,remove=remove,folder=folder}
+ registered[prompt] = entry
+ return function()
+  registered[prompt] = nil
+  for player,attempt in pairs(pending) do
+   if attempt.entry == entry then clear(player,"cancel") end
+  end
+ end
+end
+
+return Pickup]]></ProtectedString>
+					<string name="ScriptGuid">{040d2a99-59a4-47aa-94a9-41a13e3ea9d1}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Pickup</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">100286d8631a458d80e0eff73edc8e68</UniqueId>
 				</Properties>
 			</Item>
 			<Item class="ModuleScript" referent="RBX0f49e7d8e61945688dfa19ab52cdddd2">
@@ -56210,6 +56521,7 @@ function Bottles.start(town, bind)
   active[model] = nil
   count -= 1
   countsBySource[entry.source] -= 1
+  entry.unregister()
  end
  folder.ChildRemoved:Connect(forget)
 
@@ -56247,11 +56559,11 @@ function Bottles.start(town, bind)
    light.Range = 13
    light.Brightness = 2
   end
-  bind(body,kind,function()
+  local unregister = bind(body,kind,function()
    forget(model)
    model:Destroy()
-  end)
-  active[model] = {position=position,source=source}
+  end,folder)
+  active[model] = {position=position,source=source,unregister=unregister}
   count += 1
   countsBySource[source] += 1
   model.Parent = folder
@@ -56432,6 +56744,7 @@ local Feedback = game.ReplicatedStorage.BottleTown.Feedback
 local Inventory = require(script.Parent.Inventory)
 local Bottles = require(script.Parent.Bottles)
 local Residents = require(script.Parent.Residents)
+local Pickup = require(script.Parent.Pickup)
 local town = workspace.BottleTown
 
 local function addPrompt(part, action, description, distance)
@@ -56453,20 +56766,9 @@ local function canInteract(player,part,prompt)
   and part:IsDescendantOf(town) and (root.Position-part.Position).Magnitude <= prompt.MaxActivationDistance+1
 end
 
-local discard = Bottles.start(town,function(part,bottle,remove)
+local discard = Bottles.start(town,function(part,bottle,remove,folder)
  local prompt = addPrompt(part,"Pick up",bottle.name .. (bottle.cents and " · "..Config.Money(bottle.cents) or " · Mythical"),6)
- local claimed = false
- prompt.Triggered:Connect(function(player)
-  if claimed or not canInteract(player,part,prompt) then return end
-  claimed = true
-  local ok,message = Inventory.collect(player,bottle)
-  if ok then
-   remove()
-  else
-   claimed = false
-  end
-  Feedback:FireClient(player,message,ok)
- end)
+ return Pickup.register(prompt,part,bottle,remove,folder)
 end)
 
 local station = town["Pfand station"]

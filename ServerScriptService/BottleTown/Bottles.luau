@@ -50,6 +50,7 @@ function Bottles.start(town, bind)
   active[model] = nil
   count -= 1
   countsBySource[entry.source] -= 1
+  entry.unregister()
  end
  folder.ChildRemoved:Connect(forget)
 
@@ -87,11 +88,11 @@ function Bottles.start(town, bind)
    light.Range = 13
    light.Brightness = 2
   end
-  bind(body,kind,function()
+  local unregister = bind(body,kind,function()
    forget(model)
    model:Destroy()
-  end)
-  active[model] = {position=position,source=source}
+  end,folder)
+  active[model] = {position=position,source=source,unregister=unregister}
   count += 1
   countsBySource[source] += 1
   model.Parent = folder

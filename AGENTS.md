@@ -31,12 +31,16 @@ Players use cash to upgrade their collection equipment, grow a small collection 
 - Never publish, delete significant content, or create paid products without approval.
 
 ## Development workflow
-1. Inspect existing code and game structure.
+Use the project skill [bottletown-dev](.agents/skills/bottletown-dev/SKILL.md) for BottleTown development. Invoke it as `$bottletown-dev` or open the linked file directly.
+
+Read [PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md) for architecture and script locations and [CURRENT_STATE.md](docs/CURRENT_STATE.md) for iteration status. Consult [Architecture_Audit.md](docs/Architecture_Audit.md) for historical findings or major architecture work. Reserve full audits for explicit requests or major changes that require one.
+
+1. Inspect the relevant scripts and necessary dependencies. Check Git status before editing.
 2. Explain the planned changes.
 3. Implement one small feature.
 4. Test the feature.
 5. Report the results and known issues.
-6. Make changes ready for Git review.
+6. Leave changes for Git Manager review. Obtain user approval before committing or publishing.
 
 ## Version 1 scope
 - One small town map

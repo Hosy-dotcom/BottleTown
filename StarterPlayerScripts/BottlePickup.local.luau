@@ -37,9 +37,14 @@ local function endHold(immediate)
 end
 
 local function preview(character,rig)
- local elbow = character:FindFirstChild(rig == "R15" and "RightElbow" or "Right Shoulder",true)
- local waist = rig == "R15" and character:FindFirstChild("Waist",true)
- local joints = {{joint=elbow,angle=rig == "R15" and -.55 or .65},{joint=waist,angle=.22}}
+ local isR15 = rig == "R15"
+ local shoulder = character:FindFirstChild(isR15 and "RightShoulder" or "Right Shoulder",true)
+ local joints = {{joint=shoulder,angle=.48}}
+ if isR15 then
+  table.insert(joints,{joint=character:FindFirstChild("Waist",true),angle=-.43})
+  table.insert(joints,{joint=character:FindFirstChild("RightElbow",true),angle=-.16})
+  table.insert(joints,{joint=character:FindFirstChild("Neck",true),angle=-.08})
+ end
  local start = os.clock()
  local function restore()
   for _,entry in ipairs(joints) do
@@ -51,6 +56,7 @@ local function preview(character,rig)
  reach = RunService.PreSimulation:Connect(function()
   local now = os.clock()
   local weight = math.min(1,((releasedAt or now)-start)/.25)
+  weight = weight*weight*(3-2*weight)
   if releasedAt then
    weight *= math.max(0,1-(now-releasedAt)/.12)
    if weight <= 0 then clearPose() return end

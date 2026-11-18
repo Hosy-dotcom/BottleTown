@@ -48,13 +48,15 @@ local cash = text(card,"Cash","",15,UDim2.fromOffset(13,55),UDim2.fromOffset(182
 local progress = panel("Capacity track",card,UDim2.fromOffset(13,77),UDim2.fromOffset(180,3),Color3.fromRGB(74,102,93))
 local fill = panel("Capacity fill",progress,UDim2.fromOffset(0,0),UDim2.fromScale(0,1),mint)
 
-local notice = panel("Town guide",screen,UDim2.new(.5,0,0,108),UDim2.new(1,-28,0,66),ink)
-notice.AnchorPoint = Vector2.new(.5,0)
+local notice = panel("Town guide",screen,UDim2.new(1,-12,0,108),UDim2.new(.48,0,0,40),ink)
+notice.AnchorPoint = Vector2.new(1,0)
+notice.BackgroundTransparency = .12
+notice.Visible = false
 local limit = Instance.new("UISizeConstraint",notice)
-limit.MaxSize = Vector2.new(392,66)
-local message = text(notice,"Message","",14,UDim2.fromOffset(13,5),UDim2.new(1,-26,1,-10),cream,true)
+limit.MaxSize = Vector2.new(192,40)
+local message = text(notice,"Message","",12,UDim2.fromOffset(9,4),UDim2.new(1,-18,1,-8),cream,true)
 message.TextWrapped = true
-message.TextXAlignment = Enum.TextXAlignment.Center
+message.TextTruncate = Enum.TextTruncate.AtEnd
 local generation = 0
 local function show(content,color,seconds)
  generation += 1
@@ -80,11 +82,12 @@ for _,attribute in ipairs({"BottleCount","BagCapacity","CashCents","LindenStars"
  player:GetAttributeChangedSignal(attribute):Connect(refresh)
 end
 refresh()
-show("Explore the square, park and meadow. Hold E, Button X, or the bottle prompt to collect, then return bottles at Korn Markt’s green Pfand machine.",cream,14)
+show("Hold the prompt to collect.",cream,3)
 shared:WaitForChild("Feedback").OnClientEvent:Connect(function(content,success,payload)
  if success and payload and payload.kind == "pickup" then
+  content = content:gsub("^Collected ","")
   fill.BackgroundColor3 = cream
   TweenService:Create(fill,TweenInfo.new(.25),{BackgroundColor3 = (player:GetAttribute("BottleCount") or 0) >= (player:GetAttribute("BagCapacity") or 5) and peach or mint}):Play()
  end
- if content ~= "" then show(content,success and mint or peach,4) end
+ if content ~= "" then show(content,success and mint or peach,success and 1.6 or 2.5) end
 end)

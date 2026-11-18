@@ -132,27 +132,27 @@
 		<Item class="Camera" referent="RBX11abf180e4b44bf7a475de996345bbd0">
 			<Properties>
 				<CoordinateFrame name="CFrame">
-					<X>-39</X>
-					<Y>32</Y>
-					<Z>-13</Z>
-					<R00>-0.732233942</R00>
-					<R01>0.274163753</R01>
-					<R02>-0.623432279</R02>
-					<R10>1.49011612e-08</R10>
-					<R11>0.915394306</R11>
-					<R12>0.402558446</R12>
-					<R20>0.681053281</R20>
-					<R21>0.294766963</R21>
-					<R22>-0.670282722</R22>
+					<X>-43.6757507</X>
+					<Y>35.0191803</Y>
+					<Z>-18.0271225</Z>
+					<R00>-0.732234299</R00>
+					<R01>0.274162889</R01>
+					<R02>-0.623432219</R02>
+					<R10>1.4901163e-08</R10>
+					<R11>0.915394783</R11>
+					<R12>0.402557433</R12>
+					<R20>0.681052864</R20>
+					<R21>0.294766366</R21>
+					<R22>-0.670283377</R22>
 				</CoordinateFrame>
 				<Ref name="CameraSubject">null</Ref>
 				<token name="CameraType">0</token>
 				<float name="FieldOfView">70</float>
 				<token name="FieldOfViewMode">0</token>
 				<CoordinateFrame name="Focus">
-					<X>-23.0917091</X>
-					<Y>21.7278061</Y>
-					<Z>4.10378742</Z>
+					<X>-42.4288864</X>
+					<Y>34.2140656</Y>
+					<Z>-16.6865559</Z>
 					<R00>1</R00>
 					<R01>0</R01>
 					<R02>0</R02>
@@ -55329,13 +55329,15 @@ local cash = text(card,"Cash","",15,UDim2.fromOffset(13,55),UDim2.fromOffset(182
 local progress = panel("Capacity track",card,UDim2.fromOffset(13,77),UDim2.fromOffset(180,3),Color3.fromRGB(74,102,93))
 local fill = panel("Capacity fill",progress,UDim2.fromOffset(0,0),UDim2.fromScale(0,1),mint)
 
-local notice = panel("Town guide",screen,UDim2.new(.5,0,0,108),UDim2.new(1,-28,0,66),ink)
-notice.AnchorPoint = Vector2.new(.5,0)
+local notice = panel("Town guide",screen,UDim2.new(1,-12,0,108),UDim2.new(.48,0,0,40),ink)
+notice.AnchorPoint = Vector2.new(1,0)
+notice.BackgroundTransparency = .12
+notice.Visible = false
 local limit = Instance.new("UISizeConstraint",notice)
-limit.MaxSize = Vector2.new(392,66)
-local message = text(notice,"Message","",14,UDim2.fromOffset(13,5),UDim2.new(1,-26,1,-10),cream,true)
+limit.MaxSize = Vector2.new(192,40)
+local message = text(notice,"Message","",12,UDim2.fromOffset(9,4),UDim2.new(1,-18,1,-8),cream,true)
 message.TextWrapped = true
-message.TextXAlignment = Enum.TextXAlignment.Center
+message.TextTruncate = Enum.TextTruncate.AtEnd
 local generation = 0
 local function show(content,color,seconds)
  generation += 1
@@ -55361,13 +55363,14 @@ for _,attribute in ipairs({"BottleCount","BagCapacity","CashCents","LindenStars"
  player:GetAttributeChangedSignal(attribute):Connect(refresh)
 end
 refresh()
-show("Explore the square, park and meadow. Hold E, Button X, or the bottle prompt to collect, then return bottles at Korn Markt’s green Pfand machine.",cream,14)
+show("Hold the prompt to collect.",cream,3)
 shared:WaitForChild("Feedback").OnClientEvent:Connect(function(content,success,payload)
  if success and payload and payload.kind == "pickup" then
+  content = content:gsub("^Collected ","")
   fill.BackgroundColor3 = cream
   TweenService:Create(fill,TweenInfo.new(.25),{BackgroundColor3 = (player:GetAttribute("BottleCount") or 0) >= (player:GetAttribute("BagCapacity") or 5) and peach or mint}):Play()
  end
- if content ~= "" then show(content,success and mint or peach,4) end
+ if content ~= "" then show(content,success and mint or peach,success and 1.6 or 2.5) end
 end)]]></ProtectedString>
 					<bool name="Disabled">false</bool>
 					<Content name="LinkedSource"><null></null></Content>
@@ -55384,7 +55387,7 @@ end)]]></ProtectedString>
 					<UniqueId name="UniqueId">237b5518f116a2300b0e2c2300000de9</UniqueId>
 				</Properties>
 			</Item>
-			<Item class="LocalScript" referent="RBX3719ba362f43496e8e64b53891b3ec84">
+			<Item class="LocalScript" referent="RBX412078f45ab0433592fbb6f24fbd90c1">
 				<Properties>
 					<ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
 local Prompts = game:GetService("ProximityPromptService")
@@ -55425,9 +55428,14 @@ local function endHold(immediate)
 end
 
 local function preview(character,rig)
- local elbow = character:FindFirstChild(rig == "R15" and "RightElbow" or "Right Shoulder",true)
- local waist = rig == "R15" and character:FindFirstChild("Waist",true)
- local joints = {{joint=elbow,angle=rig == "R15" and -.55 or .65},{joint=waist,angle=.22}}
+ local isR15 = rig == "R15"
+ local shoulder = character:FindFirstChild(isR15 and "RightShoulder" or "Right Shoulder",true)
+ local joints = {{joint=shoulder,angle=.48}}
+ if isR15 then
+  table.insert(joints,{joint=character:FindFirstChild("Waist",true),angle=-.43})
+  table.insert(joints,{joint=character:FindFirstChild("RightElbow",true),angle=-.16})
+  table.insert(joints,{joint=character:FindFirstChild("Neck",true),angle=-.08})
+ end
  local start = os.clock()
  local function restore()
   for _,entry in ipairs(joints) do
@@ -55439,6 +55447,7 @@ local function preview(character,rig)
  reach = RunService.PreSimulation:Connect(function()
   local now = os.clock()
   local weight = math.min(1,((releasedAt or now)-start)/.25)
+  weight = weight*weight*(3-2*weight)
   if releasedAt then
    weight *= math.max(0,1-(now-releasedAt)/.12)
    if weight <= 0 then clearPose() return end
@@ -55519,7 +55528,7 @@ end)]]></ProtectedString>
 					<bool name="Disabled">false</bool>
 					<Content name="LinkedSource"><null></null></Content>
 					<token name="RunContext">0</token>
-					<string name="ScriptGuid">{ac6d1042-fc33-4792-b3ed-262f1163babe}</string>
+					<string name="ScriptGuid">{dec0e2e7-d59c-4577-a422-731e4271c7ec}</string>
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
 					<bool name="DefinesCapabilities">false</bool>
@@ -55528,7 +55537,7 @@ end)]]></ProtectedString>
 					<BinaryString name="SerializedOverrides"></BinaryString>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-					<UniqueId name="UniqueId">1f7b14113f874d8a8e3491b1509bc7c5</UniqueId>
+					<UniqueId name="UniqueId">015bbc050c19f6360b0f691f000008aa</UniqueId>
 				</Properties>
 			</Item>
 		</Item>
@@ -56168,7 +56177,7 @@ end)]]></ProtectedString>
  Pickup = {
   BaseDuration = .9,
   AnimationIds = {},
-  SoundIds = {General="rbxasset://sounds/electronicpingshort.wav"},
+  SoundIds = {General="rbxassetid://97767769"},
   Volume = .18,
  },
  UpgradePrice = 200,
@@ -56317,153 +56326,6 @@ return Inventory]]></ProtectedString>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					<UniqueId name="UniqueId">237b5518f116a2300b0e2c2300000de0</UniqueId>
-				</Properties>
-			</Item>
-			<Item class="ModuleScript" referent="RBX26aa9405dbf143c3bfafc868d50a4cfc">
-				<Properties>
-					<Content name="LinkedSource"><null></null></Content>
-					<ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Shared = game.ReplicatedStorage.BottleTown
-local Config = require(Shared.Config)
-local Inventory = require(script.Parent.Inventory)
-
-local Pickup = {}
-local registered = {}
-local pending = {}
-local lastId = {}
-local lastRejection = {}
-local monitor
-local complete
-local requests = Instance.new("RemoteEvent")
-requests.Name = "PickupRequest"
-
-local function durationForPlayer(_player)
- return Config.Pickup.BaseDuration
-end
-
-local function valid(player,entry,character)
- local root = character and character:FindFirstChild("HumanoidRootPart")
- local humanoid = character and character:FindFirstChildOfClass("Humanoid")
- return player.Character == character and root and humanoid and humanoid.Health > 0
-  and registered[entry.prompt] == entry and entry.prompt.Enabled
-  and entry.prompt.Parent == entry.part and entry.part.Parent == entry.model
-  and entry.model.Parent == entry.folder and entry.folder:IsDescendantOf(workspace)
-  and (root.Position-entry.part.Position).Magnitude <= entry.prompt.MaxActivationDistance+1
-end
-
-local function clear(player,state,message)
- local attempt = pending[player]
- if not attempt then return end
- pending[player] = nil
- if not next(pending) and monitor then
-  monitor:Disconnect()
-  monitor = nil
- end
- if state then
-  local entry = attempt.entry
-  Shared.Feedback:FireClient(player,message or "",state=="success",{
-   kind="pickup",state=state,attemptId=attempt.id,
-   sound=state=="success" and (entry.bottle.pickupSound or "General") or nil,
-  })
- end
-end
-
-local function scan()
- local now = os.clock()
- for player,attempt in pairs(pending) do
-  if now > attempt.deadline or not valid(player,attempt.entry,attempt.character) then
-   clear(player,"cancel")
-  elseif attempt.completing and now >= attempt.ready then
-   complete(player,attempt)
-  end
- end
-end
-
-complete = function(player,attempt)
- if pending[player] ~= attempt then return end
- local entry = attempt.entry
- local now = os.clock()
- if now < attempt.ready or now > attempt.deadline or entry.claimed
-  or not valid(player,entry,attempt.character) then
-  clear(player,"cancel")
-  return
- end
- entry.claimed = true
- local ok,message = Inventory.collect(player,entry.bottle)
- if not ok then
-  entry.claimed = false
-  clear(player,"cancel",message)
-  return
- end
- clear(player,"success",message)
- entry.remove()
-end
-
-requests.OnServerEvent:Connect(function(player,action,id,prompt)
- if type(id) ~= "number" or id < 1 or id > 2^31 or id%1 ~= 0 then return end
- local attempt = pending[player]
- if action == "cancel" or action == "finish" then
-  if not attempt or attempt.id ~= id then return end
-  if action == "cancel" then
-   clear(player,"cancel")
-  else
-   attempt.completing = true
-  end
-  return
- end
- if action ~= "begin" or typeof(prompt) ~= "Instance" or id <= (lastId[player] or 0) then return end
- local entry = registered[prompt]
- if not entry then return end
- lastId[player] = id
- clear(player)
- local character = player.Character
- if not valid(player,entry,character) then return end
- local now = os.clock()
- local ok,message = Inventory.canCollect(player,entry.bottle)
- if not ok then
-  local show = now-(lastRejection[player] or -math.huge) >= .25
-  if show then lastRejection[player] = now end
-  Shared.Feedback:FireClient(player,show and message or "",false,{kind="pickup",state="cancel",attemptId=id})
-  return
- end
- local duration = durationForPlayer(player)
- pending[player] = {id=id,entry=entry,character=character,ready=now+duration,deadline=now+duration+2}
- if not monitor then monitor = RunService.Heartbeat:Connect(scan) end
-end)
-requests.Parent = Shared
-
-Players.PlayerRemoving:Connect(function(player)
- clear(player)
- lastId[player] = nil
- lastRejection[player] = nil
-end)
-
-function Pickup.register(prompt,part,bottle,remove,folder)
- prompt.HoldDuration = Config.Pickup.BaseDuration
- prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
- prompt:SetAttribute("BottlePickup",true)
- local entry = {prompt=prompt,part=part,model=part.Parent,bottle=bottle,remove=remove,folder=folder}
- registered[prompt] = entry
- return function()
-  registered[prompt] = nil
-  for player,attempt in pairs(pending) do
-   if attempt.entry == entry then clear(player,"cancel") end
-  end
- end
-end
-
-return Pickup]]></ProtectedString>
-					<string name="ScriptGuid">{040d2a99-59a4-47aa-94a9-41a13e3ea9d1}</string>
-					<BinaryString name="AttributesSerialize"></BinaryString>
-					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
-					<bool name="DefinesCapabilities">false</bool>
-					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
-					<string name="Name">Pickup</string>
-					<BinaryString name="SerializedOverrides"></BinaryString>
-					<int64 name="SourceAssetId">-1</int64>
-					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
-					<UniqueId name="UniqueId">100286d8631a458d80e0eff73edc8e68</UniqueId>
 				</Properties>
 			</Item>
 			<Item class="ModuleScript" referent="RBX0f49e7d8e61945688dfa19ab52cdddd2">
@@ -56615,7 +56477,8 @@ function Bottles.start(town, bind)
  end
 end
 
-return Bottles]]></ProtectedString>
+return Bottles
+]]></ProtectedString>
 					<string name="ScriptGuid">{33370731-680b-4b2d-89af-2d9a8b0ce67e}</string>
 					<BinaryString name="AttributesSerialize"></BinaryString>
 					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
@@ -56806,6 +56669,154 @@ Residents.start(town,discard)]]></ProtectedString>
 					<int64 name="SourceAssetId">-1</int64>
 					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
 					<UniqueId name="UniqueId">237b5518f116a2300b0e2c2300000de6</UniqueId>
+				</Properties>
+			</Item>
+			<Item class="ModuleScript" referent="RBX5cc42f937f2d46ebb112e3d72e66663f">
+				<Properties>
+					<Content name="LinkedSource"><null></null></Content>
+					<ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Shared = game.ReplicatedStorage.BottleTown
+local Config = require(Shared.Config)
+local Inventory = require(script.Parent.Inventory)
+
+local Pickup = {}
+local registered = {}
+local pending = {}
+local lastId = {}
+local lastRejection = {}
+local monitor
+local complete
+local requests = Instance.new("RemoteEvent")
+requests.Name = "PickupRequest"
+
+local function durationForPlayer(_player)
+ return Config.Pickup.BaseDuration
+end
+
+local function valid(player,entry,character)
+ local root = character and character:FindFirstChild("HumanoidRootPart")
+ local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+ return player.Character == character and root and humanoid and humanoid.Health > 0
+  and registered[entry.prompt] == entry and entry.prompt.Enabled
+  and entry.prompt.Parent == entry.part and entry.part.Parent == entry.model
+  and entry.model.Parent == entry.folder and entry.folder:IsDescendantOf(workspace)
+  and (root.Position-entry.part.Position).Magnitude <= entry.prompt.MaxActivationDistance+1
+end
+
+local function clear(player,state,message)
+ local attempt = pending[player]
+ if not attempt then return end
+ pending[player] = nil
+ if not next(pending) and monitor then
+  monitor:Disconnect()
+  monitor = nil
+ end
+ if state then
+  local entry = attempt.entry
+  Shared.Feedback:FireClient(player,message or "",state=="success",{
+   kind="pickup",state=state,attemptId=attempt.id,
+   sound=state=="success" and (entry.bottle.pickupSound or "General") or nil,
+  })
+ end
+end
+
+local function scan()
+ local now = os.clock()
+ for player,attempt in pairs(pending) do
+  if now > attempt.deadline or not valid(player,attempt.entry,attempt.character) then
+   clear(player,"cancel")
+  elseif attempt.completing and now >= attempt.ready then
+   complete(player,attempt)
+  end
+ end
+end
+
+complete = function(player,attempt)
+ if pending[player] ~= attempt then return end
+ local entry = attempt.entry
+ local now = os.clock()
+ if now < attempt.ready or now > attempt.deadline or entry.claimed
+  or not valid(player,entry,attempt.character) then
+  clear(player,"cancel")
+  return
+ end
+ entry.claimed = true
+ local ok,message = Inventory.collect(player,entry.bottle)
+ if not ok then
+  entry.claimed = false
+  clear(player,"cancel",message)
+  return
+ end
+ clear(player,"success",message)
+ entry.remove()
+end
+
+requests.OnServerEvent:Connect(function(player,action,id,prompt)
+ if type(id) ~= "number" or id < 1 or id > 2^31 or id%1 ~= 0 then return end
+ local attempt = pending[player]
+ if action == "cancel" or action == "finish" then
+  if not attempt or attempt.id ~= id then return end
+  if action == "cancel" then
+   clear(player,"cancel")
+  else
+   attempt.completing = true
+  end
+  return
+ end
+ if action ~= "begin" or typeof(prompt) ~= "Instance" or id <= (lastId[player] or 0) then return end
+ local entry = registered[prompt]
+ if not entry then return end
+ lastId[player] = id
+ clear(player)
+ local character = player.Character
+ if not valid(player,entry,character) then return end
+ local now = os.clock()
+ local ok,message = Inventory.canCollect(player,entry.bottle)
+ if not ok then
+  local show = now-(lastRejection[player] or -math.huge) >= .25
+  if show then lastRejection[player] = now end
+  Shared.Feedback:FireClient(player,show and message or "",false,{kind="pickup",state="cancel",attemptId=id})
+  return
+ end
+ local duration = durationForPlayer(player)
+ pending[player] = {id=id,entry=entry,character=character,ready=now+duration,deadline=now+duration+2}
+ if not monitor then monitor = RunService.Heartbeat:Connect(scan) end
+end)
+requests.Parent = Shared
+
+Players.PlayerRemoving:Connect(function(player)
+ clear(player)
+ lastId[player] = nil
+ lastRejection[player] = nil
+end)
+
+function Pickup.register(prompt,part,bottle,remove,folder)
+ prompt.HoldDuration = Config.Pickup.BaseDuration
+ prompt.GamepadKeyCode = Enum.KeyCode.ButtonX
+ prompt:SetAttribute("BottlePickup",true)
+ local entry = {prompt=prompt,part=part,model=part.Parent,bottle=bottle,remove=remove,folder=folder}
+ registered[prompt] = entry
+ return function()
+  registered[prompt] = nil
+  for player,attempt in pairs(pending) do
+   if attempt.entry == entry then clear(player,"cancel") end
+  end
+ end
+end
+
+return Pickup
+]]></ProtectedString>
+					<string name="ScriptGuid">{914db727-7cba-4bdd-8165-2ccea7d14405}</string>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
+					<bool name="DefinesCapabilities">false</bool>
+					<UniqueId name="HistoryId">00000000000000000000000000000000</UniqueId>
+					<string name="Name">Pickup</string>
+					<BinaryString name="SerializedOverrides"></BinaryString>
+					<int64 name="SourceAssetId">-1</int64>
+					<SharedString name="Tags">yuZpQdnvvUBOTYh1jqZ2cA==</SharedString>
+					<UniqueId name="UniqueId">015bbc050c19f6360b0f691f000008a7</UniqueId>
 				</Properties>
 			</Item>
 		</Item>

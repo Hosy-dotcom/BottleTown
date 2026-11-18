@@ -2,7 +2,7 @@ return {
  Pickup = {
   BaseDuration = .9,
   AnimationIds = {},
-  SoundIds = {General="rbxasset://sounds/electronicpingshort.wav"},
+  SoundIds = {General="rbxassetid://97767769"},
   Volume = .18,
  },
  UpgradePrice = 200,

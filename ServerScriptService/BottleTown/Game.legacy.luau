@@ -1,10 +1,10 @@
-local TweenService = game:GetService("TweenService")
 local Config = require(game.ReplicatedStorage.BottleTown.Config)
 local Feedback = game.ReplicatedStorage.BottleTown.Feedback
 local Inventory = require(script.Parent.Inventory)
 local Bottles = require(script.Parent.Bottles)
 local Residents = require(script.Parent.Residents)
 local Pickup = require(script.Parent.Pickup)
+local PfandMachine = require(script.Parent.PfandMachine)
 local town = workspace.BottleTown
 
 local function addPrompt(part, action, description, distance)
@@ -32,24 +32,13 @@ local discard = Bottles.start(town,function(part,bottle,remove,folder)
 end)
 
 local station = town["Pfand station"]
-local display = station.Display
-local displayColor = display.Color
-local pulse
-local function stationInteraction(model,action,description,callback)
- local part = model.Interaction
- local prompt = addPrompt(part,action,description,8)
- prompt.Triggered:Connect(function(player)
-  if not canInteract(player,part,prompt) then return end
-  local ok,message = callback(player)
-  Feedback:FireClient(player,message,ok)
-  if ok and model == station then
-   if pulse then pulse:Cancel() end
-   display.Color = Color3.fromRGB(255,239,119)
-   pulse = TweenService:Create(display,TweenInfo.new(.9),{Color=displayColor})
-   pulse:Play()
-  end
- end)
-end
-stationInteraction(station,"Return all bottles","Korn Markt · Pfand",Inventory.redeem)
-stationInteraction(town["Equipment shop"],"Upgrade backpack","10 slots · "..Config.Money(Config.UpgradePrice),Inventory.upgrade)
+PfandMachine.start(station,addPrompt(station.Interaction,"Return bottles","Korn Markt · Pfand",8))
+
+local shop = town["Equipment shop"].Interaction
+local shopPrompt = addPrompt(shop,"Upgrade backpack","10 slots · "..Config.Money(Config.UpgradePrice),8)
+shopPrompt.Triggered:Connect(function(player)
+ if not canInteract(player,shop,shopPrompt) then return end
+ local ok,message = Inventory.upgrade(player)
+ Feedback:FireClient(player,message,ok)
+end)
 Residents.start(town,discard)

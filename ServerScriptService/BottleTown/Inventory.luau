@@ -44,17 +44,34 @@ function Inventory.collect(player, bottle)
  return true, "Collected " .. bottle.name .. " · " .. Config.Money(bottle.cents)
 end
 
-function Inventory.redeem(player)
+local depositTypes = {}
+for _,kind in ipairs(Config.Types) do
+ if kind.cents and kind.cents > 0 then depositTypes[kind.id] = kind end
+end
+
+function Inventory.depositCounts(player)
+ local counts = {}
  local profile = profiles[player]
- if not profile then return false, "" end
- local count = #profile.bottles
- if count == 0 then return false, "Collect deposit bottles before returning." end
- local amount = 0
- for _,bottle in ipairs(profile.bottles) do amount += bottle.cents end
- table.clear(profile.bottles)
- profile.cash += amount
- update(player, profile)
- return true, "+" .. Config.Money(amount) .. " · Returned " .. count .. (count == 1 and " bottle" or " bottles")
+ if profile then
+  for _,kind in ipairs(profile.bottles) do
+   if depositTypes[kind.id] == kind then
+    counts[kind.id] = (counts[kind.id] or 0)+1
+   end
+  end
+ end
+ return counts
+end
+
+function Inventory.redeemOne(player,typeId)
+ local profile = profiles[player]
+ local kind = depositTypes[typeId]
+ if not profile or not kind then return end
+ local index = table.find(profile.bottles,kind)
+ if not index then return end
+ table.remove(profile.bottles,index)
+ profile.cash += kind.cents
+ update(player,profile)
+ return kind.cents
 end
 
 function Inventory.upgrade(player)

@@ -28,7 +28,7 @@ local function canInteract(player,part,prompt)
   and part:IsDescendantOf(town) and (root.Position-part.Position).Magnitude <= prompt.MaxActivationDistance+1
 end
 
-local discard = Bottles.start(town,function(part,bottle,remove,folder)
+local discard,canDiscard = Bottles.start(town,function(part,bottle,remove,folder)
  local prompt = addPrompt(part,"Pick up",bottle.name .. (bottle.cents and " · "..Config.Money(bottle.cents) or " · Mythical"),6)
  return Pickup.register(prompt,part,bottle,remove,folder)
 end)
@@ -43,4 +43,4 @@ shopPrompt.Triggered:Connect(function(player)
  local ok,message = Inventory.upgrade(player)
  Feedback:FireClient(player,message,ok)
 end)
-Residents.start(town,discard)
+Residents.start(town,discard,canDiscard)

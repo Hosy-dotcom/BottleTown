@@ -54,12 +54,17 @@ function Bottles.start(town, bind)
  end
  folder.ChildRemoved:Connect(forget)
 
- local function spawn(x,z,source,forcedType)
-  if count >= Config.ActiveLimit then return end
-  local position = Vector2.new(x,z)
+ local function canSpawn(position)
+  if count >= Config.ActiveLimit then return false end
   for _,entry in pairs(active) do
-   if (entry.position-position).Magnitude < 4 then return end
+   if (entry.position-position).Magnitude < 4 then return false end
   end
+  return true
+ end
+
+ local function spawn(x,z,source,forcedType)
+  local position = Vector2.new(x,z)
+  if not canSpawn(position) then return end
   local mythical = not forcedType and not mythicalSpawned and rng:NextInteger(1,1800) == 1
   local kind = mythical and Config.Mythical or (forcedType or Config.Types[rng:NextInteger(1,#Config.Types)])
   if mythical then mythicalSpawned = true end
@@ -137,11 +142,16 @@ function Bottles.start(town, bind)
    refill()
   end
  end)
- return function(x,z)
+ local function discard(x,z)
   if countsBySource.Resident < Config.ResidentBottleLimit then
-   spawn(x,z,"Resident")
+   return spawn(x,z,"Resident") == true
   end
+  return false
  end
+ local function canDiscard(x,z)
+  return countsBySource.Resident < Config.ResidentBottleLimit and canSpawn(Vector2.new(x,z))
+ end
+ return discard,canDiscard
 end
 
 return Bottles

@@ -27,6 +27,15 @@ return {
  BottleZoneTargets = {Town=8, Park=3, Meadow=3},
  BottleRefillInterval = 4,
  ResidentScale = 1.75,
+ Residents = {
+  ActiveLimit = 5,
+  WalkSpeed = 4,
+  DropChance = .35,
+  DropCooldown = 30,
+  SharedDropCooldown = 12,
+  DiscardDuration = .85,
+  DiscardReleaseTime = .4,
+ },
  Types = {
   {id="water", shape="Plastic", name="Water bottle", pickupSound="Plastic", cents=25, color=Color3.fromRGB(85,185,243), label=Color3.fromRGB(240,251,255), size=1},
   {id="reusable", shape="Glass", name="Reusable glass", pickupSound="Glass", cents=15, color=Color3.fromRGB(99,193,111), label=Color3.fromRGB(247,219,148), size=1.13},

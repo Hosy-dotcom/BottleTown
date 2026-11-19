@@ -62,6 +62,11 @@ function Inventory.depositCounts(player)
  return counts
 end
 
+function Inventory.backpackContents(player)
+ local profile = profiles[player]
+ return profile and table.clone(profile.bottles) or {}
+end
+
 function Inventory.redeemOne(player,typeId)
  local profile = profiles[player]
  local kind = depositTypes[typeId]

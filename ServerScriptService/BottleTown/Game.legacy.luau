@@ -5,7 +5,9 @@ local Bottles = require(script.Parent.Bottles)
 local Residents = require(script.Parent.Residents)
 local Pickup = require(script.Parent.Pickup)
 local PfandMachine = require(script.Parent.PfandMachine)
+local Backpacks = require(script.Parent.Backpacks)
 local town = workspace.BottleTown
+Backpacks.start()
 
 local function addPrompt(part, action, description, distance)
  local prompt = Instance.new("ProximityPrompt")

@@ -123,15 +123,18 @@ function Presentation.new(player,machine,callbacks)
   self.hud.Enabled = false
  end
  self.visibility = {}
+ self.visibilityConnections = {}
+ local function hide(part)
+  if part:IsA("BasePart") and self.visibility[part] == nil then
+   self.visibility[part] = part.LocalTransparencyModifier
+   part.LocalTransparencyModifier = 1
+  end
+ end
  for _,other in ipairs(game:GetService("Players"):GetPlayers()) do
   local character = other.Character
   if character then
-   for _,part in ipairs(character:GetDescendants()) do
-    if part:IsA("BasePart") then
-     self.visibility[part] = part.LocalTransparencyModifier
-     part.LocalTransparencyModifier = 1
-    end
-   end
+   table.insert(self.visibilityConnections,character.DescendantAdded:Connect(hide))
+   for _,part in ipairs(character:GetDescendants()) do hide(part) end
   end
  end
  self.screen = create("ScreenGui",player.PlayerGui,{Name="PfandSession",ResetOnSpawn=false,DisplayOrder=12})
@@ -445,6 +448,8 @@ function Presentation:releaseCamera()
  self.oldCamera = nil
  Prompts.Enabled = self.oldPrompts
  if self.hud and self.hud.Parent then self.hud.Enabled = self.hudEnabled end
+ for _,connection in ipairs(self.visibilityConnections) do connection:Disconnect() end
+ table.clear(self.visibilityConnections)
  for part,transparency in pairs(self.visibility) do
   if part.Parent then part.LocalTransparencyModifier = transparency end
  end
